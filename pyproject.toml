@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/app_builder_runtime"]
+packages = ["src/aio_runtime"]
 
 [project.optional-dependencies]
 dev = [

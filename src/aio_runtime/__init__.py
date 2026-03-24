@@ -26,7 +26,7 @@ __all__ = [
     "SANDBOX_SIZES",
 ]
 
-logger = logging.getLogger("app_builder_runtime")
+logger = logging.getLogger("aio_runtime")
 
 
 @dataclass

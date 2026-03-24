@@ -18,7 +18,7 @@ from .errors import (
     SandboxUnauthorizedError,
 )
 
-logger = logging.getLogger("app_builder_runtime")
+logger = logging.getLogger("aio_runtime")
 
 _STATUS_ERROR_MAP: dict[int, type[SandboxClientError]] = {
     401: SandboxUnauthorizedError,

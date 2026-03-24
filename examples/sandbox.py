@@ -7,7 +7,7 @@ Usage:
 
 import asyncio
 
-from app_builder_runtime import init
+from aio_runtime import init
 
 
 async def main() -> None:

@@ -14,7 +14,7 @@ pip install git+https://github.com/MichaelGoberling/aio-lib-runtime-python.git
 
 ```python
 import asyncio
-from app_builder_runtime import init
+from aio_runtime import init
 
 async def main():
     runtime = await init(
