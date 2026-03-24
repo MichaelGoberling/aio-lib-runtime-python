@@ -1,0 +1,24 @@
+# Virtual environments (equivalent of node_modules)
+.venv/
+venv/
+env/
+
+# Build artifacts
+dist/
+*.egg-info/
+build/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff cache
+.ruff_cache/
+
+# macOS
+.DS_Store
