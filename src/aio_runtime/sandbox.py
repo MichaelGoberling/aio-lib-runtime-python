@@ -8,6 +8,7 @@ import base64
 import json
 import logging
 import secrets
+import ssl as ssl_module
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -105,11 +106,17 @@ class Sandbox:
         if self._ws is not None:
             return
 
+        ssl_ctx = None
+        if not self._verify_ssl and self.endpoint.startswith("wss://"):
+            ssl_ctx = ssl_module.SSLContext(ssl_module.PROTOCOL_TLS_CLIENT)
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl_module.CERT_NONE
+
         try:
             ws = await websockets.connect(
                 self.endpoint,
                 additional_headers={},
-                ssl=None if self._verify_ssl else False,
+                ssl=ssl_ctx,
             )
         except Exception as exc:
             raise SandboxWebSocketError(
