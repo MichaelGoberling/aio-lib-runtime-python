@@ -3,11 +3,32 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, List, TypedDict, Union
 
 from ._http import api_request, build_ws_endpoint, normalize_api_host
 from .errors import SandboxClientError
 from .sandbox import Sandbox
+
+
+class EgressRule(TypedDict, total=False):
+    """A single egress allowlist entry."""
+
+    host: str  # FQDN, wildcard FQDN, IP, or CIDR
+    port: int  # 1-65535
+    protocol: str  # 'TCP' or 'UDP', defaults to 'TCP'
+
+
+class NetworkPolicy(TypedDict, total=False):
+    """Network policy configuration."""
+
+    egress: Union[List[EgressRule], str]  # list of rules or 'allow-all'
+
+
+class Policy(TypedDict, total=False):
+    """Sandbox policy configuration."""
+
+    network: NetworkPolicy
+
 
 SANDBOX_SIZES: dict[str, dict[str, Any]] = {
     "SMALL": {"cpu": "500m", "memory": "512Mi", "gpu": 0},
@@ -108,7 +129,7 @@ def _build_create_body(options: dict[str, Any]) -> dict[str, Any]:
         "type": options.get("type", "cpu:default"),
         "maxLifetime": options.get("max_lifetime", 3600),
     }
-    for key in ("cluster", "region", "workspace", "envs"):
+    for key in ("cluster", "region", "workspace", "envs", "policy"):
         if key in options:
             body[key] = options[key]
     return body

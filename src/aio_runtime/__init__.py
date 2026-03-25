@@ -12,7 +12,13 @@ from typing import Any
 from .compute import ComputeAPI
 from .errors import SDKInitializationError
 from .sandbox import ExecResult, FileEntry, Sandbox, WriteResult
-from .sandbox_api import SANDBOX_SIZES, SandboxAPI
+from .sandbox_api import (
+    SANDBOX_SIZES,
+    EgressRule,
+    NetworkPolicy,
+    Policy,
+    SandboxAPI,
+)
 
 __all__ = [
     "init",
@@ -24,6 +30,9 @@ __all__ = [
     "WriteResult",
     "FileEntry",
     "SANDBOX_SIZES",
+    "EgressRule",
+    "NetworkPolicy",
+    "Policy",
 ]
 
 logger = logging.getLogger("aio_runtime")

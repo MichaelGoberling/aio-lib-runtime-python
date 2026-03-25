@@ -25,6 +25,13 @@ async def main() -> None:
         workspace="workspace",
         max_lifetime=3600,
         envs={"API_KEY": "your-api-key"},
+        policy={
+            "network": {
+                "egress": [
+                    {"host": "api.github.com", "port": 443}
+                ]
+            }
+        },
     )
     print("sandbox ready:", sandbox.id)
 
