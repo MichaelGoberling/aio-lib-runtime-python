@@ -107,10 +107,13 @@ class Sandbox:
             return
 
         ssl_ctx = None
-        if not self._verify_ssl and self.endpoint.startswith("wss://"):
-            ssl_ctx = ssl_module.SSLContext(ssl_module.PROTOCOL_TLS_CLIENT)
-            ssl_ctx.check_hostname = False
-            ssl_ctx.verify_mode = ssl_module.CERT_NONE
+        if self.endpoint.startswith("wss://"):
+            if self._verify_ssl:
+                ssl_ctx = ssl_module.create_default_context()
+            else:
+                ssl_ctx = ssl_module.SSLContext(ssl_module.PROTOCOL_TLS_CLIENT)
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl_module.CERT_NONE
 
         try:
             ws = await websockets.connect(

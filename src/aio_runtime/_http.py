@@ -57,6 +57,7 @@ async def api_request(
     api_key: str,
     body: dict[str, Any] | None = None,
     verify_ssl: bool = True,
+    timeout: float = 30.0,
     operation: str = "request",
 ) -> Any:
     headers = {"Authorization": build_auth_header(api_key)}
@@ -66,7 +67,7 @@ async def api_request(
         headers["Content-Type"] = "application/json"
         kwargs["content"] = json.dumps(body)
 
-    async with httpx.AsyncClient(verify=verify_ssl) as client:
+    async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
         try:
             resp = await client.request(method, url, **kwargs)
         except httpx.HTTPError as exc:

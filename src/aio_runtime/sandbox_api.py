@@ -36,12 +36,14 @@ class SandboxAPI:
         self._verify_ssl = verify_ssl
 
     async def create(self, **options: Any) -> Sandbox:
+        timeout = options.pop("timeout", 120.0)
         payload = await api_request(
             "POST",
             self._sandbox_url(),
             api_key=self._api_key,
             body=_build_create_body(options),
             verify_ssl=self._verify_ssl,
+            timeout=timeout,
             operation="create sandbox",
         )
         return await self._build_sandbox(payload)
