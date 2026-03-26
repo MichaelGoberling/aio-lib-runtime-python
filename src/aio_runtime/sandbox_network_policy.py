@@ -14,7 +14,6 @@ as the ``network`` field when creating a sandbox::
         policy={"network": SandboxNetworkPolicy.base},
     )
 
-Modelled after https://github.com/NVIDIA/OpenShell-Community/blob/main/sandboxes/base/policy.yaml
 """
 
 from __future__ import annotations
