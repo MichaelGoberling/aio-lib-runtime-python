@@ -10,9 +10,7 @@ pip install git+https://github.com/MichaelGoberling/aio-lib-runtime-python.git
 
 > Note: Use `pip3` on macOS if needed. Requires Python 3.10+.
 
-## Quick Start
-
-Every example below assumes you have a `runtime` instance and a `sandbox` ready to go:
+## Usage
 
 ```python
 import asyncio
