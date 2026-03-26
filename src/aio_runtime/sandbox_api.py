@@ -18,8 +18,8 @@ class EgressRule(TypedDict, total=False):
     protocol: str  # 'TCP' or 'UDP', defaults to 'TCP'
 
 
-class NetworkPolicy(TypedDict, total=False):
-    """Network policy configuration."""
+class NetworkPolicyOptions(TypedDict, total=False):
+    """Network policy configuration (egress rules or 'allow-all')."""
 
     egress: Union[List[EgressRule], str]  # list of rules or 'allow-all'
 
@@ -27,7 +27,7 @@ class NetworkPolicy(TypedDict, total=False):
 class Policy(TypedDict, total=False):
     """Sandbox policy configuration."""
 
-    network: NetworkPolicy
+    network: NetworkPolicyOptions
 
 
 SANDBOX_SIZES: dict[str, dict[str, Any]] = {

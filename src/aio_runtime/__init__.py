@@ -15,10 +15,11 @@ from .sandbox import ExecResult, FileEntry, Sandbox, WriteResult
 from .sandbox_api import (
     SANDBOX_SIZES,
     EgressRule,
-    NetworkPolicy,
+    NetworkPolicyOptions,
     Policy,
     SandboxAPI,
 )
+from .sandbox_network_policy import NetworkPolicy
 
 __all__ = [
     "init",
@@ -31,6 +32,7 @@ __all__ = [
     "FileEntry",
     "SANDBOX_SIZES",
     "EgressRule",
+    "NetworkPolicyOptions",
     "NetworkPolicy",
     "Policy",
 ]
