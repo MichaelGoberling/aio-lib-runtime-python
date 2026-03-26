@@ -37,10 +37,6 @@ async def main():
 asyncio.run(main())
 ```
 
----
-
-## Examples
-
 ### Getting Status
 
 Query a sandbox's current status by its ID:
