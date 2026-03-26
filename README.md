@@ -100,7 +100,7 @@ def on_output(data: str, stream: str) -> None:
 result = await sandbox.exec("npm install", timeout=30_000, on_output=on_output)
 ```
 
-### Curling a Site with a Network Policy
+### Network Policy
 
 Create a sandbox with an egress allowlist so it can only reach specific hosts:
 
