@@ -8,139 +8,162 @@ Python SDK for Adobe Runtime.
 pip install git+https://github.com/MichaelGoberling/aio-lib-runtime-python.git
 ```
 
-> Note: Use `pip3` on macOS if needed. Requires Python 3.10+.
+> Note: May need to use pip3 on macOS. Requires Python 3.10+.
 
-## Usage
+## Init
 
 ```python
-import asyncio
 from aio_runtime import init
 
-async def main():
-    runtime = await init(
-        api_host="https://<your-host>",
-        namespace="<your-namespace>",
-        api_key="<your-api-key>",
-    )
-
-    sandbox = await runtime.compute.sandbox.create(
-        name="my-sandbox",
-        size="MEDIUM",           # SMALL | MEDIUM | LARGE | XLARGE
-        max_lifetime=3600,       # seconds
-    )
-
-    result = await sandbox.exec("echo hello")
-    print(result.stdout)
-
-    await sandbox.destroy()
-
-asyncio.run(main())
+runtime = await init(
+    api_host=os.environ.get("AIO_RUNTIME_APIHOST"),
+    namespace=os.environ.get("AIO_RUNTIME_NAMESPACE"),
+    api_key=os.environ.get("AIO_RUNTIME_AUTH"),
+)
 ```
 
-### Getting Status
+## Create Sandbox
 
-Query a sandbox's current status by its ID:
+```python
+from aio_runtime import SandboxNetworkPolicy
+
+sandbox = await runtime.compute.sandbox.create(
+  name = "my-sandbox",
+  type = "cpu:nodejs",
+  workspace = "workspace",
+  max_lifetime = 3600,
+  envs = { "API_KEY": "your-api-key" },
+  policy={"network": SandboxNetworkPolicy.base},
+)
+```
+
+## Get Status
 
 ```python
 status = await runtime.compute.sandbox.get_status(sandbox.id)
-print(status)
-# {'sandboxId': 'abc-123', 'status': 'running', 'cluster': 'us-east', ...}
+print("status:", status)
 ```
 
-### Managing Files
-
-**Write a file** into the sandbox:
+## Exec
 
 ```python
-await sandbox.write_file("hello.js", "console.log('hello world');\n")
+result = await sandbox.exec("ls -al", timeout=10_000)
+print("stdout:", result.stdout.strip())
+print("exit code:", result.exit_code)
 ```
 
-**Read a file** back:
+## File Management
 
 ```python
+script = "console.log('hello from sandbox script', process.version)\n"
+await sandbox.write_file("hello.js", script)
+
 content = await sandbox.read_file("hello.js")
-print(content)  # console.log('hello world');
-```
+print("readFile content:", content.strip())
 
-**List files** in a directory:
-
-```python
 entries = await sandbox.list_files(".")
-for entry in entries:
-    print(f"{entry.name}  ({entry.type}, {entry.size} bytes)")
+print("listFiles entries:", entries)
 ```
 
-### Exec-ing a File
-
-Write a script, then execute it:
+## Exec a File
 
 ```python
-script = """\
-import json, sys
-print(json.dumps({"python": sys.version, "status": "ok"}))
-"""
-
-await sandbox.write_file("check.py", script)
-
-result = await sandbox.exec("python3 check.py", timeout=10_000)
-print(result.stdout)       # {"python": "3.12.x", "status": "ok"}
-print(result.exit_code)    # 0
+result = await sandbox.exec("node hello.js", timeout=10_000)
+print("stdout:", result.stdout.strip())
+print("stderr:", result.stderr.strip())
+print("exit code:", result.exit_code)
 ```
 
-You can also stream output as it arrives:
+## Curl a site
 
 ```python
-def on_output(data: str, stream: str) -> None:
-    print(f"[{stream}] {data}", end="")
-
-result = await sandbox.exec("npm install", timeout=30_000, on_output=on_output)
-```
-
-### Network Policy
-
-Create a sandbox with an egress allowlist so it can only reach specific hosts:
-
-```python
-sandbox = await runtime.compute.sandbox.create(
-    name="locked-down",
-    size="MEDIUM",
-    max_lifetime=300,
-    policy={
-        "network": {
-            "egress": [
-                {"host": "httpbin.org", "port": 443},
-            ]
-        }
-    },
-)
-
-# Allowed — httpbin.org is in the allowlist
 allowed = await sandbox.exec(
-    'curl -s -o /dev/null -w "%{http_code}" https://httpbin.org/get',
-    timeout=15_000,
+  f'curl -s --connect-timeout 5 -o /dev/null -w "%{{http_code}}" https://github.com',
+  timeout = 15_000,
 )
-print(f"httpbin.org  -> HTTP {allowed.stdout.strip()}")  # 200
-
-# Blocked — example.com is NOT in the allowlist
-blocked = await sandbox.exec(
-    'curl -s --connect-timeout 5 -o /dev/null -w "%{http_code}" https://example.com || echo "BLOCKED"',
-    timeout=15_000,
-)
-print(f"example.com  -> {blocked.stdout.strip()}")  # BLOCKED
+print(f"  github.com   (allowed) -> HTTP {allowed.stdout.strip()}")
 ```
 
-To allow all outbound traffic instead, pass `"allow-all"`:
+## Destroy
 
 ```python
-sandbox = await runtime.compute.sandbox.create(
-    name="open-egress",
-    size="MEDIUM",
-    policy={"network": {"egress": "allow-all"}},
-)
+await sandbox.destroy()
 ```
-
-Omitting the `policy` key entirely applies the default-deny baseline (only internal DNS and NATS are reachable).
 
 ---
 
-See [`examples/sandbox.py`](examples/sandbox.py) for a full interactive walkthrough.
+## Network Policies
+
+Sandboxes are default-deny. All outbound traffic is blocked unless explicitly allowed.
+
+At creation time, a `policy.network` field is passed with an egress allowlist of `{ host, port }` pairs. Only matching traffic is permitted.
+
+This library provides composable presets (`SandboxNetworkPolicy.github`, `.pypi`, etc.) as starting points for common services.
+
+### Base Policy
+
+Includes GitHub, Anthropic, npm, pypi, and others.
+
+See [sandbox_network_policy.py](src/aio_runtime/sandbox_network_policy.py) for the full list.
+
+```python
+from aio_runtime import SandboxNetworkPolicy
+
+sandbox = await runtime.compute.sandbox.create(
+  name = "my-sandbox",
+  type = "cpu:nodejs",
+  workspace = "workspace",
+  max_lifetime = 3600,
+  envs = { "API_KEY": "your-api-key" },
+  policy={ "network": SandboxNetworkPolicy.base },
+)
+```
+
+### Specific Services
+
+```python
+from aio_runtime import SandboxNetworkPolicy
+
+sandbox = await compute.sandbox.create(
+  name = "policy-composed",
+  type = "cpu:nodejs",
+  workspace = "policy-test",
+  max_lifetime = 300,
+  policy = {
+    "network": {
+      "egress": [
+        *SandboxNetworkPolicy.github["egress"],
+        *SandboxNetworkPolicy.pypi["egress"],
+      ]
+    }
+  },
+)
+```
+
+### Specific Hosts/Ports
+
+```python
+sandbox = await compute.sandbox.create(
+  name="policy-composed",
+  workspace="policy-test",
+  max_lifetime=300,
+  policy={
+      "network": {
+          "egress": [
+              {"host": "httpbin.org", "port": 443},
+          ]
+      }
+  },
+)
+```
+
+### Allow All (Debug only)
+
+```python
+sandbox = await compute.sandbox.create(
+  name="policy-allow-all",
+  workspace="policy-test",
+  max_lifetime=300,
+  policy={"network": {"egress": "allow-all"}},
+)
+```
