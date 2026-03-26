@@ -19,7 +19,7 @@ from .sandbox_api import (
     Policy,
     SandboxAPI,
 )
-from .sandbox_network_policy import NetworkPolicy
+from .sandbox_network_policy import SandboxNetworkPolicy
 
 __all__ = [
     "init",
@@ -33,7 +33,7 @@ __all__ = [
     "SANDBOX_SIZES",
     "EgressRule",
     "NetworkPolicyOptions",
-    "NetworkPolicy",
+    "SandboxNetworkPolicy",
     "Policy",
 ]
 

@@ -7,11 +7,11 @@ Pre-built network policies for common services.
 Each attribute is a ``{"egress": [...]}`` dict that can be passed directly
 as the ``network`` field when creating a sandbox::
 
-    from aio_runtime import NetworkPolicy
+    from aio_runtime import SandboxNetworkPolicy
 
     sandbox = await compute.sandbox.create(
         name="my-agent",
-        policy={"network": NetworkPolicy.base},
+        policy={"network": SandboxNetworkPolicy.base},
     )
 
 Modelled after https://github.com/NVIDIA/OpenShell-Community/blob/main/sandboxes/base/policy.yaml
@@ -26,7 +26,7 @@ def _policy(*rules: EgressRule) -> NetworkPolicyOptions:
     return {"egress": list(rules)}
 
 
-class NetworkPolicy:
+class SandboxNetworkPolicy:
     """Pre-built network policies keyed by service name."""
 
     # -- AI / LLM providers --------------------------------------------------
