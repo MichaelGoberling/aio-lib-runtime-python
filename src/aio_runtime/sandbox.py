@@ -52,8 +52,8 @@ class FileEntry:
 class ExecTask:
     """Awaitable handle for a running command.
 
-    Mirrors the JS SDK pattern where exec() returns a promise with execId.
-    Use ``exec_id`` to call ``write_stdin`` / ``close_stdin`` while the
+    Mirrors the JS SDK pattern: ``exec()`` returns synchronously with an
+    ``exec_id`` you can pass to ``write_stdin`` / ``close_stdin`` while the
     command runs, then ``await`` the task to get the :class:`ExecResult`.
     """
 
@@ -68,6 +68,7 @@ class ExecTask:
 @dataclass
 class _PendingExec:
     future: asyncio.Future[ExecResult]
+    started: asyncio.Event = field(default_factory=asyncio.Event)
     stdout: str = ""
     stderr: str = ""
     on_output: Callable[[str, str], None] | None = None
@@ -189,6 +190,7 @@ class Sandbox:
             await self._send_frame(
                 {"type": "exec.run", "execId": exec_id, "command": command}
             )
+            pending.started.set()
             if stdin is not None:
                 await self.write_stdin(exec_id, stdin)
                 await self.close_stdin(exec_id)
@@ -201,8 +203,9 @@ class Sandbox:
         await self._send_frame({"type": "exec.kill", "execId": exec_id, "signal": signal})
 
     async def write_stdin(self, exec_id: str, data: str | bytes) -> None:
-        """Write data to stdin of a running command. Fire-and-forget."""
+        """Write data to stdin of a running command."""
         self._ensure_open()
+        await self._wait_for_exec_start(exec_id)
         frame: dict[str, Any] = {"type": "exec.input", "execId": exec_id}
         if isinstance(data, bytes):
             frame["data"] = base64.b64encode(data).decode()
@@ -212,8 +215,9 @@ class Sandbox:
         await self._send_frame(frame)
 
     async def close_stdin(self, exec_id: str) -> None:
-        """Close stdin for a running command, delivering EOF. Fire-and-forget."""
+        """Close stdin for a running command, delivering EOF."""
         self._ensure_open()
+        await self._wait_for_exec_start(exec_id)
         await self._send_frame({"type": "exec.endInput", "execId": exec_id})
 
     # ------------------------------------------------------------------
@@ -424,6 +428,16 @@ class Sandbox:
                 f"Command '{command}' exceeded timeout of {timeout}ms"
             ),
         )
+
+    async def _wait_for_exec_start(self, exec_id: str) -> None:
+        """Wait until exec.run has been sent for the given exec_id.
+
+        This ensures write_stdin / close_stdin never race ahead of exec.run
+        even when called immediately after the synchronous exec() call.
+        """
+        pending = self._pending_execs.get(exec_id)
+        if pending is not None and not pending.started.is_set():
+            await pending.started.wait()
 
     def _ensure_open(self) -> None:
         if self._ws is None:

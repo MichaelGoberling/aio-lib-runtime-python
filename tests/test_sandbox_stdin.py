@@ -200,6 +200,22 @@ class TestExecWithStdin:
         sandbox._resolve_exec("exec-aabbcc", {"exitCode": 0})
         await exec_task
 
+    @pytest.mark.asyncio
+    async def test_await_exec_returns_result_directly(self) -> None:
+        """await sandbox.exec(...) returns ExecResult directly, mirroring JS."""
+        sandbox = _make_sandbox()
+        sandbox._ws = AsyncMock()
+
+        with patch("aio_runtime.sandbox.secrets.token_hex", return_value="aabbcc"):
+            exec_task = sandbox.exec("echo hi")
+            await asyncio.sleep(0)
+            sandbox._resolve_exec("exec-aabbcc", {"exitCode": 0})
+            result = await exec_task
+
+        assert result.stdout == ""
+        assert result.exit_code == 0
+        assert result.exec_id == "exec-aabbcc"
+
 
 # ------------------------------------------------------------------
 # Manual write_stdin / close_stdin via ExecTask.exec_id
@@ -209,14 +225,14 @@ class TestExecWithStdin:
 class TestManualStdinViaExecTask:
     @pytest.mark.asyncio
     async def test_manual_write_stdin(self) -> None:
+        """write_stdin automatically waits for exec.run to be sent first."""
         sandbox = _make_sandbox()
         sandbox._ws = AsyncMock()
 
         with patch("aio_runtime.sandbox.secrets.token_hex", return_value="aabbcc"):
             exec_task = sandbox.exec("cat -n")
 
-        await asyncio.sleep(0)
-
+        # No asyncio.sleep(0) here — write_stdin blocks on started.wait() internally
         await sandbox.write_stdin(exec_task.exec_id, "line one\n")
         await sandbox.write_stdin(exec_task.exec_id, "line two\n")
         await sandbox.close_stdin(exec_task.exec_id)
