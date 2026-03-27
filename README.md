@@ -84,6 +84,26 @@ allowed = await sandbox.exec(
 print(f"  github.com   (allowed) -> HTTP {allowed.stdout.strip()}")
 ```
 
+## Write to Stdin
+
+### Command start
+```python
+result = await sandbox.exec("python process_csv.py", stdin="col1,col2\nval1,val2\n", timeout=10_000)
+print("stdout:", result.stdout.strip())
+```
+
+### Running command
+```python
+task = sandbox.exec("cat -n", timeout=10_000)
+
+await sandbox.write_stdin(task.exec_id, "line 1\n")
+await sandbox.write_stdin(task.exec_id, "line 2\n")
+await sandbox.close_stdin(task.exec_id)
+
+result = await task
+print("stdout:", result.stdout.strip())
+```
+
 ## Destroy
 
 ```python

@@ -9,6 +9,7 @@ import json
 import logging
 import secrets
 import ssl as ssl_module
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -46,6 +47,22 @@ class FileEntry:
     name: str
     type: str
     size: int | None = None
+
+
+class ExecTask:
+    """Awaitable handle for a running command.
+
+    Mirrors the JS SDK pattern where exec() returns a promise with execId.
+    Use ``exec_id`` to call ``write_stdin`` / ``close_stdin`` while the
+    command runs, then ``await`` the task to get the :class:`ExecResult`.
+    """
+
+    def __init__(self, exec_id: str, _task: asyncio.Task[ExecResult]) -> None:
+        self.exec_id = exec_id
+        self._task = _task
+
+    def __await__(self) -> Generator[Any, None, ExecResult]:
+        return self._task.__await__()
 
 
 @dataclass
@@ -143,13 +160,14 @@ class Sandbox:
     # Exec
     # ------------------------------------------------------------------
 
-    async def exec(
+    def exec(
         self,
         command: str,
         *,
         timeout: float | None = None,
         on_output: Callable[[str, str], None] | None = None,
-    ) -> ExecResult:
+        stdin: str | bytes | None = None,
+    ) -> ExecTask:
         self._ensure_open()
         exec_id = f"exec-{secrets.token_hex(12)}"
         loop = asyncio.get_running_loop()
@@ -166,12 +184,37 @@ class Sandbox:
             )
 
         self._pending_execs[exec_id] = pending
-        await self._send_frame({"type": "exec.run", "execId": exec_id, "command": command})
-        return await future
+
+        async def _run() -> ExecResult:
+            await self._send_frame(
+                {"type": "exec.run", "execId": exec_id, "command": command}
+            )
+            if stdin is not None:
+                await self.write_stdin(exec_id, stdin)
+                await self.close_stdin(exec_id)
+            return await future
+
+        return ExecTask(exec_id=exec_id, _task=loop.create_task(_run()))
 
     async def kill(self, exec_id: str, signal: str = "SIGTERM") -> None:
         self._ensure_open()
         await self._send_frame({"type": "exec.kill", "execId": exec_id, "signal": signal})
+
+    async def write_stdin(self, exec_id: str, data: str | bytes) -> None:
+        """Write data to stdin of a running command. Fire-and-forget."""
+        self._ensure_open()
+        frame: dict[str, Any] = {"type": "exec.input", "execId": exec_id}
+        if isinstance(data, bytes):
+            frame["data"] = base64.b64encode(data).decode()
+            frame["encoding"] = "base64"
+        else:
+            frame["data"] = data
+        await self._send_frame(frame)
+
+    async def close_stdin(self, exec_id: str) -> None:
+        """Close stdin for a running command, delivering EOF. Fire-and-forget."""
+        self._ensure_open()
+        await self._send_frame({"type": "exec.endInput", "execId": exec_id})
 
     # ------------------------------------------------------------------
     # File operations

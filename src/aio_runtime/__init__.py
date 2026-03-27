@@ -11,7 +11,7 @@ from typing import Any
 
 from .compute import ComputeAPI
 from .errors import SDKInitializationError
-from .sandbox import ExecResult, FileEntry, Sandbox, WriteResult
+from .sandbox import ExecResult, ExecTask, FileEntry, Sandbox, WriteResult
 from .sandbox_api import (
     SANDBOX_SIZES,
     EgressRule,
@@ -28,6 +28,7 @@ __all__ = [
     "SandboxAPI",
     "Sandbox",
     "ExecResult",
+    "ExecTask",
     "WriteResult",
     "FileEntry",
     "SANDBOX_SIZES",
