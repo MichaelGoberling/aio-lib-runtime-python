@@ -10,12 +10,24 @@ from .errors import SandboxClientError
 from .sandbox import Sandbox
 
 
+class L7Rule(TypedDict, total=False):
+    """An HTTP-layer (L7) match rule for an egress entry.
+
+    When ``rules`` is present on an :class:`EgressRule`, only requests whose
+    HTTP method and URL path match at least one entry here are permitted.
+    """
+
+    methods: List[str]  # HTTP verbs to allow, e.g. ['GET', 'POST']
+    pathPattern: str    # Glob-style path pattern, e.g. '/repos/**'
+
+
 class EgressRule(TypedDict, total=False):
     """A single egress allowlist entry."""
 
-    host: str  # FQDN, wildcard FQDN, IP, or CIDR
-    port: int  # 1-65535
-    protocol: str  # 'TCP' or 'UDP', defaults to 'TCP'
+    host: str               # FQDN, wildcard FQDN, IP, or CIDR
+    port: int               # 1-65535
+    protocol: str           # 'TCP' or 'UDP', defaults to 'TCP'
+    rules: List[L7Rule]     # Optional L7 HTTP rules; when present, only matching method+path combinations are allowed
 
 
 class NetworkPolicyOptions(TypedDict, total=False):

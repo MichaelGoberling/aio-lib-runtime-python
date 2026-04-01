@@ -46,6 +46,28 @@ class TestBuildCreateBodyPolicy:
         body = _build_create_body({"name": "sb", "policy": policy})
         assert body["policy"]["network"]["egress"][0]["protocol"] == "UDP"
 
+    def test_policy_with_l7_rules(self) -> None:
+        policy = {
+            "network": {
+                "egress": [
+                    {"host": "httpbin.org", "port": 443},
+                    {
+                        "host": "api.github.com",
+                        "port": 443,
+                        "rules": [
+                            {"methods": ["GET"], "pathPattern": "/repos/**"},
+                            {"methods": ["GET", "POST"], "pathPattern": "/issues/**"},
+                        ],
+                    },
+                ]
+            }
+        }
+        body = _build_create_body({"name": "sb", "policy": policy})
+        assert body["policy"] == policy
+        egress = body["policy"]["network"]["egress"]
+        assert egress[1]["rules"][0]["methods"] == ["GET"]
+        assert egress[1]["rules"][0]["pathPattern"] == "/repos/**"
+
     def test_policy_does_not_affect_other_fields(self) -> None:
         policy = {"network": {"egress": "allow-all"}}
         body = _build_create_body({

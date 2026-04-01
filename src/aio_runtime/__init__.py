@@ -15,6 +15,7 @@ from .sandbox import ExecResult, ExecTask, FileEntry, Sandbox, WriteResult
 from .sandbox_api import (
     SANDBOX_SIZES,
     EgressRule,
+    L7Rule,
     NetworkPolicyOptions,
     Policy,
     SandboxAPI,
@@ -30,6 +31,7 @@ __all__ = [
     "WriteResult",
     "FileEntry",
     "SANDBOX_SIZES",
+    "L7Rule",
     "EgressRule",
     "NetworkPolicyOptions",
     "Policy",
